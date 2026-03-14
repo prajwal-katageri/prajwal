@@ -855,6 +855,13 @@ function invoicesToCsv(invoices) {
   return lines.join('\n');
 }
 
+function parseInrCell(text) {
+  const s = String(text || '').replace(/,/g, '');
+  const m = s.match(/-?\d+(?:\.\d+)?/);
+  const n = m ? Number(m[0]) : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+
 function showInvoiceReport(inv) {
   const card = document.getElementById('invoice-report-card');
   const body = document.getElementById('invoice-report-body');
@@ -996,11 +1003,31 @@ function bindInvoiceRowActions() {
   body.__invoiceBound = true;
 
   body.addEventListener('click', (e) => {
-    const btn = e.target && e.target.closest ? e.target.closest('button[data-invoice-id]') : null;
+    const btn = e.target && e.target.closest ? e.target.closest('button') : null;
     if (!btn) return;
-    const id = btn.getAttribute('data-invoice-id') || '';
-    const inv = (lastInvoicesList || []).find((x) => String(x.id || x._id || '') === String(id));
-    showInvoiceReport(inv || null);
+
+    const idAttr = btn.getAttribute('data-invoice-id') || '';
+    if (idAttr) {
+      const inv = (lastInvoicesList || []).find((x) => String(x.id || x._id || '') === String(idAttr));
+      showInvoiceReport(inv || null);
+      return;
+    }
+
+    // Fallback for static HTML rows (when API load fails): extract from the table cells.
+    const tr = btn.closest('tr');
+    const tds = tr ? tr.querySelectorAll('td') : null;
+    if (!tds || tds.length < 7) return;
+
+    const inv = {
+      id: (tds[0].textContent || '').trim(),
+      customer: (tds[1].textContent || '').trim(),
+      date: (tds[2].textContent || '').trim(),
+      amountInr: parseInrCell(tds[3].textContent),
+      taxInr: parseInrCell(tds[4].textContent),
+      payment: (tds[5].textContent || '').trim(),
+      status: (tds[6].textContent || '').trim(),
+    };
+    showInvoiceReport(inv);
   });
 }
 
