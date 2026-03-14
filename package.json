@@ -1,0 +1,12 @@
+{
+  "name": "bizcare",
+  "private": true,
+  "version": "1.0.0",
+  "description": "BizCare monorepo root (frontend static + backend server)",
+  "workspaces": [
+    "backend"
+  ],
+  "scripts": {
+    "start": "node backend/server.js"
+  }
+}
