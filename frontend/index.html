@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizCare — Local Business + Clinic Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<!-- Login screen (shown when not authenticated) -->
+<div id="login-screen" style="display:none;min-height:100vh;background:var(--bg);padding:26px">
+  <div style="max-width:520px;margin:0 auto">
+    <div class="logo" style="margin-bottom:16px">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">Biz<span>Care</span></span>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Login</span>
+        <span style="font-size:11px;color:var(--text3)">Admin / Shopkeeper / User</span>
+      </div>
+
+      <div style="padding:18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div style="min-width:160px;flex:1">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Role</div>
+            <select id="login-role" class="filter-select" style="width:100%">
+              <option value="user">User</option>
+              <option value="shopkeeper">Shopkeeper</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div style="min-width:160px;flex:1">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Username</div>
+            <input id="login-username" class="section-search" placeholder="e.g., user" style="width:100%">
+          </div>
+          <div style="min-width:160px;flex:1">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Password</div>
+            <input id="login-password" type="password" class="section-search" placeholder="••••••" style="width:100%" onkeydown="if(event.key==='Enter'){doLogin()}" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="doLogin()">Login</button>
+          <div id="login-status" style="font-size:12px;color:var(--text2)"></div>
+        </div>
+
+        <div style="margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Demo accounts</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6">
+            <div><strong>Admin</strong>: admin / admin123</div>
+            <div><strong>Shopkeeper</strong>: shop / shop123</div>
+            <div><strong>User</strong>: user / user123</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">Biz<span>Care</span></span>
+    </div>
+
+    <div class="biz-selector" id="biz-selector" onclick="toggleDomainMenu(event)">
+      <div class="biz-dot" id="biz-icon">🏢</div>
+      <div class="biz-info">
+        <div class="biz-name" id="biz-name">Sharma Business Hub</div>
+        <div class="biz-type" id="biz-type">Domains: Shop • Restaurant • Clinic</div>
+      </div>
+      <div class="biz-arrow">▾</div>
+    </div>
+
+    <div id="domain-menu" style="display:none;margin:0 14px 12px 14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:0 10px 30px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;color:var(--text);font-weight:600" data-i18n="domain.title">Domains</div>
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="toggleDomainMenu(event)" data-i18n="common.cancel">Cancel</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2)">
+          <input id="domain-shop" type="checkbox" onchange="setDomainFromCheckbox('shop', this.checked)">
+          <span data-i18n="domain.shop">Shop</span>
+        </label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2)">
+          <input id="domain-restaurant" type="checkbox" onchange="setDomainFromCheckbox('restaurant', this.checked)">
+          <span data-i18n="domain.restaurant">Restaurant</span>
+        </label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2)">
+          <input id="domain-clinic" type="checkbox" onchange="setDomainFromCheckbox('clinic', this.checked)">
+          <span data-i18n="domain.clinic">Clinic</span>
+        </label>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)" data-i18n="domain.hint">Turn modules on/off per business type.</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="nav-label" data-i18n="nav.section.overview">Overview</div>
+        <div class="nav-item active" onclick="show('dashboard')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span data-i18n="nav.dashboard">Dashboard</span>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label" data-i18n="nav.section.business">Business</div>
+        <div class="nav-item" id="nav-inventory" onclick="show('inventory')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          <span data-i18n="nav.inventory">Inventory</span>
+          <span class="nav-badge amber">3</span>
+        </div>
+        <div class="nav-item" id="nav-billing" onclick="show('billing')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span data-i18n="nav.billing">Billing</span>
+        </div>
+        <div class="nav-item" id="nav-customers" onclick="show('customers')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span data-i18n="nav.customers">Customers</span>
+        </div>
+        <div class="nav-item" id="nav-feedback" onclick="show('feedback')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span data-i18n="nav.feedback">Feedback & Reviews</span>
+          <span class="nav-badge green">12</span>
+        </div>
+      </div>
+
+      <div class="nav-section" data-module="clinic">
+        <div class="nav-label" data-i18n="nav.section.clinic">Clinic</div>
+        <div class="nav-item" id="nav-clinic" onclick="show('clinic')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span data-i18n="nav.clinic">Clinic & Appointments</span>
+          <span class="nav-badge">5</span>
+        </div>
+        <div class="nav-item" id="nav-prescription" onclick="show('prescription')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+          <span data-i18n="nav.prescription">Prescriptions</span>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label" data-i18n="nav.section.platform">Platform</div>
+        <div class="nav-item" id="nav-notifications" onclick="show('notifications')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span data-i18n="nav.notifications">Notifications</span>
+          <span class="nav-badge">7</span>
+        </div>
+        <div class="nav-item" id="nav-analytics" onclick="show('analytics')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span data-i18n="nav.analytics">AI Analytics</span>
+        </div>
+        <div class="nav-item" id="nav-subscription" onclick="show('subscription')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          <span data-i18n="nav.subscription">Subscription</span>
+        </div>
+        <div class="nav-item" id="nav-admin" onclick="show('admin')">
+          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span data-i18n="nav.admin">Admin Panel</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Language selector -->
+    <div class="lang-bar">
+      <button class="lang-btn" data-lang="en" onclick="setLang(this,'en')">EN</button>
+      <button class="lang-btn" data-lang="kn" onclick="setLang(this,'kn')">ಕನ್ನಡ</button>
+      <button class="lang-btn" data-lang="hi" onclick="setLang(this,'hi')">हिंदी</button>
+      <button class="lang-btn" data-lang="ta" onclick="setLang(this,'ta')">தமிழ்</button>
+    </div>
+
+    <div style="padding:0 14px 16px 14px">
+      <button class="btn btn-outline" id="logout-btn" style="width:100%" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-breadcrumb"><span>BizCare</span> › <span id="page-bc">Overview</span></div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="search-bar">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="global-search" data-i18n-placeholder="search.placeholder" placeholder="Search anything…">
+      </div>
+      <div class="topbar-actions">
+        <div class="icon-btn" title="Notifications">
+          🔔<div class="dot"></div>
+        </div>
+        <div class="icon-btn" title="WhatsApp">💬</div>
+        <div class="avatar">SK</div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ DASHBOARD ════════════════════════════ -->
+    <div class="content active" id="content-dashboard">
+      <div class="greeting">
+        <h1 data-i18n="dash.greeting">Good morning 👋</h1>
+        <p data-i18n="dash.subtitle">Saturday, 14 March 2026 · Sharma Business Hub · Kunigal, Karnataka</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-icon blue">💰</div>
+          <div class="stat-value">₹1.24L</div>
+          <div class="stat-label">Today's Revenue</div>
+          <div class="stat-delta"><span class="delta-up">▲ 12.4%</span> vs yesterday</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon green">📋</div>
+          <div class="stat-value">38</div>
+          <div class="stat-label">Bookings Today</div>
+          <div class="stat-delta"><span class="delta-up">▲ 5</span> more than usual</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon amber">📦</div>
+          <div class="stat-value">847</div>
+          <div class="stat-label">Items In Stock</div>
+          <div class="stat-delta"><span class="delta-down">▼ 3</span> low-stock alerts</div>
+        </div>
+        <div class="stat-card coral">
+          <div class="stat-icon coral">⭐</div>
+          <div class="stat-value">4.7</div>
+          <div class="stat-label">Avg Rating</div>
+          <div class="stat-delta"><span class="delta-up">▲ 0.2</span> this month</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Weekly Revenue</span>
+            <span class="card-action">View Report →</span>
+          </div>
+          <div class="mini-chart" id="revenue-chart"></div>
+          <div style="margin-top:12px; display:flex; gap:20px;">
+            <div><div style="font-size:11px;color:var(--text3)">Total Week</div><div style="font-size:15px;font-family:var(--font-display);font-weight:700;color:var(--text);letter-spacing:-0.5px">₹6.84L</div></div>
+            <div><div style="font-size:11px;color:var(--text3)">Best Day</div><div style="font-size:15px;font-family:var(--font-display);font-weight:700;color:var(--green);letter-spacing:-0.5px">Thu — ₹1.42L</div></div>
+            <div><div style="font-size:11px;color:var(--text3)">Avg/Day</div><div style="font-size:15px;font-family:var(--font-display);font-weight:700;color:var(--text);letter-spacing:-0.5px">₹97.7K</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Revenue Mix</span>
+            <span class="card-action">Details →</span>
+          </div>
+          <div class="donut-wrap">
+            <svg class="donut-svg" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#1F2435" stroke-width="18"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#5C7CFA" stroke-width="18" stroke-dasharray="100 152" stroke-dashoffset="0" stroke-linecap="butt"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#10B981" stroke-width="18" stroke-dasharray="57 195" stroke-dashoffset="-100" stroke-linecap="butt"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#F59E0B" stroke-width="18" stroke-dasharray="33 219" stroke-dashoffset="-157" stroke-linecap="butt"/>
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#8B5CF6" stroke-width="18" stroke-dasharray="18 234" stroke-dashoffset="-190" stroke-linecap="butt"/>
+              <text x="55" y="51" text-anchor="middle" font-size="13" font-weight="700" fill="#E8EBF4" font-family="Syne,sans-serif">62%</text>
+              <text x="55" y="63" text-anchor="middle" font-size="8" fill="#8B93AA" font-family="DM Sans,sans-serif">Services</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-row"><div class="legend-left"><div class="legend-dot" style="background:#5C7CFA"></div>Clinic</div><div class="legend-val">₹2.64L</div></div>
+              <div class="legend-row"><div class="legend-left"><div class="legend-dot" style="background:#10B981"></div>Retail</div><div class="legend-val">₹1.47L</div></div>
+              <div class="legend-row"><div class="legend-left"><div class="legend-dot" style="background:#F59E0B"></div>Restaurant</div><div class="legend-val">₹0.84L</div></div>
+              <div class="legend-row"><div class="legend-left"><div class="legend-dot" style="background:#8B5CF6"></div>Other</div><div class="legend-val">₹0.29L</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Today's Bookings</span>
+            <span class="card-action" onclick="show('customers')">View All →</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Customer</th><th>Time</th><th>Service</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Rajesh Kumar</td><td>09:00 AM</td><td>Clinic Consultation</td><td><span class="badge success">Done</span></td></tr>
+                <tr><td>Priya Nair</td><td>10:30 AM</td><td>Pharmacy Pickup</td><td><span class="badge info">In Progress</span></td></tr>
+                <tr><td>Arun Gowda</td><td>11:00 AM</td><td>Restaurant Order</td><td><span class="badge warning">Preparing</span></td></tr>
+                <tr><td>Sunita Reddy</td><td>02:00 PM</td><td>Retail Purchase</td><td><span class="badge success">Completed</span></td></tr>
+                <tr><td>Mohan Das</td><td>03:30 PM</td><td>Home Delivery</td><td><span class="badge purple">Scheduled</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Transactions</span>
+            <span class="card-action" onclick="show('billing')">View All →</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Invoice</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>INV-2024-891</td><td>₹2,400</td><td><span class="badge success">Paid</span></td></tr>
+                <tr><td>INV-2024-890</td><td>₹850</td><td><span class="badge success">Paid</span></td></tr>
+                <tr><td>INV-2024-889</td><td>₹5,200</td><td><span class="badge warning">Pending</span></td></tr>
+                <tr><td>INV-2024-888</td><td>₹1,100</td><td><span class="badge success">Paid</span></td></tr>
+                <tr><td>INV-2024-887</td><td>₹3,600</td><td><span class="badge danger">Overdue</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ INVENTORY ════════════════════════════ -->
+    <div class="content" id="content-inventory">
+      <div class="greeting"><h1 data-i18n="inv.title">Inventory Management</h1><p data-i18n="inv.subtitle">Track stock, manage products and supplier orders</p></div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-add-product" onclick="toggleAddProductForm()">+ Add Product</button>
+        <button class="btn btn-outline">📤 Import CSV</button>
+        <button class="btn btn-outline">📊 Supplier Orders</button>
+        <select class="filter-select"><option>All Categories</option><option>Medicine</option><option>Grocery</option><option>Equipment</option></select>
+        <input class="section-search" placeholder="Search products…" oninput="filterTable(this.value,'inv-body')">
+        <button class="btn btn-outline" style="margin-left:auto">Export ↓</button>
+      </div>
+
+      <div class="card" id="add-product-form" style="margin-bottom:14px;display:none">
+        <div class="card-header">
+          <span class="card-title">Add Product</span>
+          <button class="btn btn-outline" style="font-size:11px;padding:5px 12px" onclick="toggleAddProductForm(false)" data-i18n="common.cancel">Cancel</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:160px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Product Name</div>
+            <input id="prod-name" class="section-search" placeholder="e.g., Rice 5kg" style="width:100%">
+          </div>
+          <div style="min-width:160px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Category</div>
+            <select id="prod-category" class="filter-select" style="width:100%">
+              <option value="Medicine">Medicine</option>
+              <option value="Grocery">Grocery</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div style="min-width:120px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Stock</div>
+            <input id="prod-stock" class="section-search" placeholder="e.g., 20" style="width:100%">
+          </div>
+          <div style="min-width:140px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Unit Price (₹)</div>
+            <input id="prod-price" class="section-search" placeholder="e.g., 99" style="width:100%">
+          </div>
+          <div style="flex:1;min-width:160px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Supplier</div>
+            <input id="prod-supplier" class="section-search" placeholder="e.g., Local Supplier" style="width:100%">
+          </div>
+          <button class="btn btn-primary" onclick="submitProduct()">Save Product</button>
+          <div id="prod-form-status" style="font-size:12px;color:var(--text2)"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">Stock Overview</span><span class="card-action">Low Stock Alerts (3) →</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Product Name</th><th>Category</th><th>Stock</th><th>Level</th><th>Unit Price</th><th>Supplier</th><th>Status</th></tr></thead>
+            <tbody id="inv-body">
+              <tr><td>Paracetamol 500mg</td><td>Medicine</td><td>1240 tabs</td><td><div class="stock-bar"><div class="stock-fill" style="width:80%;background:var(--green)"></div></div></td><td>₹2.50</td><td>MedPharma</td><td><span class="badge success">In Stock</span></td></tr>
+              <tr><td>Amoxicillin 250mg</td><td>Medicine</td><td>18 strips</td><td><div class="stock-bar"><div class="stock-fill" style="width:12%;background:var(--coral)"></div></div></td><td>₹68.00</td><td>HealthPlus</td><td><span class="badge danger">Low Stock</span></td></tr>
+              <tr><td>BP Monitor</td><td>Equipment</td><td>4 units</td><td><div class="stock-bar"><div class="stock-fill" style="width:30%;background:var(--amber)"></div></div></td><td>₹1,800</td><td>MedEquip Co.</td><td><span class="badge warning">Low</span></td></tr>
+              <tr><td>Dolo 650mg</td><td>Medicine</td><td>560 tabs</td><td><div class="stock-bar"><div class="stock-fill" style="width:65%;background:var(--green)"></div></div></td><td>₹4.20</td><td>MedPharma</td><td><span class="badge success">In Stock</span></td></tr>
+              <tr><td>Surgical Gloves (L)</td><td>Equipment</td><td>8 boxes</td><td><div class="stock-bar"><div class="stock-fill" style="width:20%;background:var(--coral)"></div></div></td><td>₹220</td><td>SafeMed</td><td><span class="badge danger">Low Stock</span></td></tr>
+              <tr><td>Metformin 500mg</td><td>Medicine</td><td>340 tabs</td><td><div class="stock-bar"><div class="stock-fill" style="width:55%;background:var(--green)"></div></div></td><td>₹3.80</td><td>DiabCare</td><td><span class="badge success">In Stock</span></td></tr>
+              <tr><td>Thermometer Digital</td><td>Equipment</td><td>12 units</td><td><div class="stock-bar"><div class="stock-fill" style="width:70%;background:var(--green)"></div></div></td><td>₹380</td><td>MedEquip Co.</td><td><span class="badge success">In Stock</span></td></tr>
+              <tr><td>Azithromycin 500mg</td><td>Medicine</td><td>11 strips</td><td><div class="stock-bar"><div class="stock-fill" style="width:9%;background:var(--coral)"></div></div></td><td>₹85.00</td><td>HealthPlus</td><td><span class="badge danger">Low Stock</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="orders-panel" style="margin-bottom:14px;display:none">
+        <div class="card-header"><span class="card-title">Orders</span><span style="font-size:11px;color:var(--text3)">Shopkeeper/Admin view</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Order ID</th><th>User</th><th>Product</th><th>Qty</th><th>Address</th><th>Status</th></tr></thead>
+            <tbody id="orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ BILLING ════════════════════════════ -->
+    <div class="content" id="content-billing">
+      <div class="greeting"><h1 data-i18n="bill.title">Billing & Invoices</h1><p data-i18n="bill.subtitle">Generate invoices, record payments and view sales reports</p></div>
+      <div class="invoice-cards">
+        <div class="inv-card"><div class="inv-card-label">Today's Sales</div><div class="inv-card-value">₹1,24,200</div><div class="inv-card-sub">47 transactions · GST: ₹11,160</div></div>
+        <div class="inv-card"><div class="inv-card-label">Pending Payments</div><div class="inv-card-value" style="color:var(--amber)">₹18,500</div><div class="inv-card-sub">5 invoices pending</div></div>
+        <div class="inv-card"><div class="inv-card-label">Monthly Revenue</div><div class="inv-card-value" style="color:var(--green)">₹34.6L</div><div class="inv-card-sub">+12% vs last month</div></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-new-invoice" onclick="toggleNewInvoiceForm()">+ New Invoice</button>
+        <button class="btn btn-outline">🧾 GST Report</button>
+        <button class="btn btn-outline">📤 Export</button>
+        <select class="filter-select"><option>All Status</option><option>Paid</option><option>Pending</option><option>Overdue</option></select>
+      </div>
+
+      <div class="card" id="new-invoice-form" style="margin-bottom:14px;display:none">
+        <div class="card-header">
+          <span class="card-title">New Invoice</span>
+          <button class="btn btn-outline" style="font-size:11px;padding:5px 12px" onclick="toggleNewInvoiceForm(false)" data-i18n="common.cancel">Cancel</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Customer</div>
+            <input id="inv-customer" class="section-search" placeholder="e.g., Walk-in" style="width:100%">
+          </div>
+          <div style="min-width:140px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Amount (₹)</div>
+            <input id="inv-amount" class="section-search" placeholder="e.g., 500" style="width:100%">
+          </div>
+          <div style="min-width:140px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Tax (₹)</div>
+            <input id="inv-tax" class="section-search" placeholder="e.g., 45" style="width:100%">
+          </div>
+          <div style="min-width:140px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Payment</div>
+            <select id="inv-payment" class="filter-select" style="width:100%">
+              <option value="UPI">UPI</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="—">—</option>
+            </select>
+          </div>
+          <div style="min-width:140px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Status</div>
+            <select id="inv-status" class="filter-select" style="width:100%">
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="submitInvoice()">Save Invoice</button>
+          <div id="inv-form-status" style="font-size:12px;color:var(--text2)"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Invoices</span><span class="card-action">All Invoices →</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Invoice #</th><th>Patient / Customer</th><th>Date</th><th>Amount</th><th>Tax</th><th>Payment</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="inv-list-body">
+              <tr><td>INV-2024-891</td><td>Rajesh Kumar</td><td>14 Mar 2026</td><td>₹2,400</td><td>₹216</td><td>UPI</td><td><span class="badge success">Paid</span></td><td><button class="appt-btn">View</button></td></tr>
+              <tr><td>INV-2024-890</td><td>Priya Nair</td><td>14 Mar 2026</td><td>₹850</td><td>₹76</td><td>Cash</td><td><span class="badge success">Paid</span></td><td><button class="appt-btn">View</button></td></tr>
+              <tr><td>INV-2024-889</td><td>Arun Gowda</td><td>13 Mar 2026</td><td>₹5,200</td><td>₹468</td><td>—</td><td><span class="badge warning">Pending</span></td><td><button class="appt-btn primary">Send</button></td></tr>
+              <tr><td>INV-2024-888</td><td>Sunita Reddy</td><td>13 Mar 2026</td><td>₹1,100</td><td>₹99</td><td>Card</td><td><span class="badge success">Paid</span></td><td><button class="appt-btn">View</button></td></tr>
+              <tr><td>INV-2024-887</td><td>Retail — Walk-in</td><td>12 Mar 2026</td><td>₹3,600</td><td>₹324</td><td>—</td><td><span class="badge danger">Overdue</span></td><td><button class="appt-btn primary">Remind</button></td></tr>
+              <tr><td>INV-2024-886</td><td>Mohan Das</td><td>12 Mar 2026</td><td>₹680</td><td>₹61</td><td>UPI</td><td><span class="badge success">Paid</span></td><td><button class="appt-btn">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="card-header"><span class="card-title">UPI Payments — Scan QR</span><span style="font-size:11px;color:var(--text3)">Camera permission required</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" id="upi-scan-btn" onclick="startUpiScan()">📷 Scan UPI QR</button>
+          <button class="btn btn-outline" id="upi-stop-btn" onclick="stopUpiScan()" style="display:none">Stop Camera</button>
+          <div id="upi-scan-status" style="font-size:12px;color:var(--text2)">Idle</div>
+        </div>
+        <div id="upi-video-wrap" style="margin-top:12px;display:none">
+          <video id="upi-video" playsinline muted style="width:100%;max-width:560px;border-radius:12px;border:1px solid var(--border);background:var(--bg)"></video>
+          <canvas id="upi-canvas" style="display:none"></canvas>
+        </div>
+        <div id="upi-scan-result" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ CUSTOMERS ════════════════════════════ -->
+    <div class="content" id="content-customers">
+      <div class="greeting"><h1 data-i18n="cust.title">Customer Management</h1><p data-i18n="cust.subtitle">Profiles, purchase history, loyalty programmes and analytics</p></div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-add-customer" onclick="toggleAddCustomerForm()">+ Add Customer</button>
+        <button class="btn btn-outline">🎁 Loyalty Programme</button>
+        <input class="section-search" placeholder="Search customers…">
+        <select class="filter-select"><option>All Segments</option><option>Premium</option><option>Regular</option><option>New</option></select>
+      </div>
+
+      <div class="card" id="user-order-panel" style="margin-bottom:14px;display:none">
+        <div class="card-header"><span class="card-title">Place Order</span><span style="font-size:11px;color:var(--text3)">User only</span></div>
+        <div style="padding:16px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div style="min-width:200px;flex:1">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Product</div>
+              <select id="order-product" class="filter-select" style="width:100%"></select>
+            </div>
+            <div style="min-width:120px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Quantity</div>
+              <input id="order-qty" class="section-search" placeholder="e.g., 1" style="width:100%">
+            </div>
+            <div style="min-width:240px;flex:1">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Delivery Address</div>
+              <input id="order-address" class="section-search" placeholder="House / Street / Area" style="width:100%">
+            </div>
+            <button class="btn btn-primary" onclick="submitOrder()">Place Order</button>
+            <div id="order-status" style="font-size:12px;color:var(--text2)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="my-orders-panel" style="margin-bottom:14px;display:none">
+        <div class="card-header"><span class="card-title">My Orders</span></div>
+        <div id="my-orders-list" style="padding:16px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <div class="card" id="add-customer-form" style="margin-bottom:14px;display:none">
+        <div class="card-header">
+          <span class="card-title">Add Customer</span>
+          <button class="btn btn-outline" style="font-size:11px;padding:5px 12px" onclick="toggleAddCustomerForm(false)" data-i18n="common.cancel">Cancel</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Name</div>
+            <input id="cust-name" class="section-search" placeholder="e.g., Suresh" style="width:100%">
+          </div>
+          <div style="min-width:180px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Phone</div>
+            <input id="cust-phone" class="section-search" placeholder="+91 9XXXXXXXXX" style="width:100%">
+          </div>
+          <div style="min-width:140px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Segment</div>
+            <select id="cust-segment" class="filter-select" style="width:100%">
+              <option value="New">New</option>
+              <option value="Regular">Regular</option>
+              <option value="Premium">Premium</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="submitCustomer()">Save Customer</button>
+          <div id="cust-form-status" style="font-size:12px;color:var(--text2)"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">Nearby Shops</span><span style="font-size:11px;color:var(--text3)">Uses your location to show nearest options</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-outline" onclick="findNearbyShops()">📍 Use my location</button>
+          <div id="shops-status" style="font-size:12px;color:var(--text2)">Idle</div>
+        </div>
+        <div id="shops-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Customer List</span><span style="font-size:11px;color:var(--text3)">248 total customers</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Phone</th><th>Visits</th><th>Total Spent</th><th>Loyalty Points</th><th>Progress</th><th>Segment</th></tr></thead>
+            <tbody id="cust-body">
+              <tr><td>Rajesh Kumar</td><td>+91 98765 43210</td><td>24</td><td>₹42,000</td><td>1,840 pts</td><td><div class="loyalty-bar" style="width:80px"><div class="loyalty-fill" style="width:80%"></div></div></td><td><span class="badge purple">Premium</span></td></tr>
+              <tr><td>Priya Nair</td><td>+91 87654 32109</td><td>11</td><td>₹18,500</td><td>740 pts</td><td><div class="loyalty-bar" style="width:80px"><div class="loyalty-fill" style="width:45%"></div></div></td><td><span class="badge info">Regular</span></td></tr>
+              <tr><td>Arun Gowda</td><td>+91 76543 21098</td><td>6</td><td>₹9,200</td><td>368 pts</td><td><div class="loyalty-bar" style="width:80px"><div class="loyalty-fill" style="width:25%"></div></div></td><td><span class="badge info">Regular</span></td></tr>
+              <tr><td>Sunita Reddy</td><td>+91 65432 10987</td><td>2</td><td>₹2,400</td><td>96 pts</td><td><div class="loyalty-bar" style="width:80px"><div class="loyalty-fill" style="width:8%"></div></div></td><td><span class="badge success">New</span></td></tr>
+              <tr><td>Mohan Das</td><td>+91 54321 09876</td><td>38</td><td>₹78,000</td><td>3,120 pts</td><td><div class="loyalty-bar" style="width:80px"><div class="loyalty-fill" style="width:100%"></div></div></td><td><span class="badge purple">Premium</span></td></tr>
+              <tr><td>Kavitha Rao</td><td>+91 43210 98765</td><td>15</td><td>₹22,000</td><td>880 pts</td><td><div class="loyalty-bar" style="width:80px"><div class="loyalty-fill" style="width:55%"></div></div></td><td><span class="badge info">Regular</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ FEEDBACK ════════════════════════════ -->
+    <div class="content" id="content-feedback">
+      <div class="greeting"><h1 data-i18n="feed.title">Feedback & Reviews</h1><p data-i18n="feed.subtitle">Collect, manage and analyse customer feedback</p></div>
+      <div class="bottom-row" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Overall Rating</span></div>
+          <div style="display:flex;align-items:center;gap:20px">
+            <div>
+              <div class="rating-big">4.7</div>
+              <div class="stars">★★★★★</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">Based on 324 reviews</div>
+            </div>
+            <div style="flex:1">
+              <div class="rating-row"><span class="rating-label">5★</span><div class="rating-track"><div class="rating-track-fill" style="width:74%"></div></div><span class="rating-count">241</span></div>
+              <div class="rating-row"><span class="rating-label">4★</span><div class="rating-track"><div class="rating-track-fill" style="width:16%"></div></div><span class="rating-count">52</span></div>
+              <div class="rating-row"><span class="rating-label">3★</span><div class="rating-track"><div class="rating-track-fill" style="width:6%"></div></div><span class="rating-count">20</span></div>
+              <div class="rating-row"><span class="rating-label">2★</span><div class="rating-track"><div class="rating-track-fill" style="width:2%"></div></div><span class="rating-count">7</span></div>
+              <div class="rating-row"><span class="rating-label">1★</span><div class="rating-track"><div class="rating-track-fill" style="width:1%"></div></div><span class="rating-count">4</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Sentiment Analysis (AI)</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Positive</div><div style="height:6px;background:var(--surface2);border-radius:3px"><div style="height:100%;width:78%;background:var(--green);border-radius:3px"></div></div><div style="font-size:11px;color:var(--green);margin-top:3px">78% — Great service, friendly staff</div></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Neutral</div><div style="height:6px;background:var(--surface2);border-radius:3px"><div style="height:100%;width:15%;background:var(--amber);border-radius:3px"></div></div><div style="font-size:11px;color:var(--amber);margin-top:3px">15% — Average wait times</div></div>
+            <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">Negative</div><div style="height:6px;background:var(--surface2);border-radius:3px"><div style="height:100%;width:7%;background:var(--coral);border-radius:3px"></div></div><div style="font-size:11px;color:var(--coral);margin-top:3px">7% — Parking, wait time issues</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Reviews</span><button class="btn btn-outline" style="font-size:11px;padding:5px 12px">Send Feedback Request</button></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <div class="notif-item">
+            <div class="notif-icon" style="background:rgba(245,158,11,0.1);font-size:14px">⭐</div>
+            <div class="notif-body"><div class="notif-title">Rajesh Kumar · <span class="stars" style="font-size:12px">★★★★★</span></div><div class="notif-sub" style="margin-top:4px;font-size:12px;color:var(--text2)">"Excellent consultation. Dr. Sharma was very thorough and explained everything clearly. The pharmacy had all medicines in stock."</div><div class="notif-sub" style="margin-top:4px">14 Mar 2026</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon" style="background:rgba(245,158,11,0.1);font-size:14px">⭐</div>
+            <div class="notif-body"><div class="notif-title">Priya Nair · <span class="stars" style="font-size:12px">★★★★☆</span></div><div class="notif-sub" style="margin-top:4px;font-size:12px;color:var(--text2)">"Good service overall. Had to wait a bit but the treatment was effective. Clean and organised clinic."</div><div class="notif-sub" style="margin-top:4px">13 Mar 2026</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon" style="background:rgba(244,63,94,0.1);font-size:14px">⭐</div>
+            <div class="notif-body"><div class="notif-title">Walk-in Customer · <span class="stars" style="font-size:12px">★★★☆☆</span></div><div class="notif-sub" style="margin-top:4px;font-size:12px;color:var(--text2)">"Parking is difficult. The pharmacy staff could be more helpful."</div><div class="notif-sub" style="margin-top:4px">12 Mar 2026</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ CLINIC ════════════════════════════ -->
+    <div class="content" id="content-clinic" data-module="clinic">
+      <div class="greeting"><h1 data-i18n="clinic.title">Clinic & Appointments</h1><p data-i18n="clinic.subtitle">Patient management, scheduling and doctor roster</p></div>
+      <div class="toolbar">
+        <button class="btn btn-primary">+ New Appointment</button>
+        <button class="btn btn-outline">👥 Register Patient</button>
+        <button class="btn btn-outline">👨‍⚕️ Doctor Schedule</button>
+        <select class="filter-select"><option>All Doctors</option><option>Dr. Sharma</option><option>Dr. Ravi</option></select>
+        <select class="filter-select"><option>Today</option><option>Tomorrow</option><option>This Week</option></select>
+      </div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Today's Queue</span><span class="card-action" style="color:var(--green)">● Live</span></div>
+          <div class="appt-list">
+            <div class="appt-item"><div class="appt-time">9:00</div><div class="appt-divider"></div><div class="appt-info"><div class="appt-name">Rajesh Kumar</div><div class="appt-meta">General · Dr. Sharma · OP#12</div></div><span class="badge success">Done</span></div>
+            <div class="appt-item" style="border-color:var(--accent);background:rgba(92,124,250,0.05)"><div class="appt-time" style="color:var(--teal)">10:30</div><div class="appt-divider"></div><div class="appt-info"><div class="appt-name">Priya Nair</div><div class="appt-meta">Diabetes follow-up · Dr. Sharma</div></div><span class="badge info">In Progress</span><div class="appt-actions"><button class="appt-btn primary">Prescription</button></div></div>
+            <div class="appt-item"><div class="appt-time">11:00</div><div class="appt-divider"></div><div class="appt-info"><div class="appt-name">Arun Gowda</div><div class="appt-meta">BP Check · Dr. Sharma</div></div><span class="badge warning">Waiting</span><div class="appt-actions"><button class="appt-btn">Call</button></div></div>
+            <div class="appt-item"><div class="appt-time">2:00</div><div class="appt-divider"></div><div class="appt-info"><div class="appt-name">Sunita Reddy</div><div class="appt-meta">New Patient · Dr. Ravi</div></div><span class="badge purple">Scheduled</span></div>
+            <div class="appt-item"><div class="appt-time">3:30</div><div class="appt-divider"></div><div class="appt-info"><div class="appt-name">Mohan Das</div><div class="appt-meta">Post-op review · Dr. Ravi</div></div><span class="badge purple">Scheduled</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Doctor Availability</span></div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:13px;font-weight:500;color:var(--text)">Dr. Sharma</div>
+                <span class="badge success">● Available</span>
+              </div>
+              <div style="font-size:11px;color:var(--text3)">General Medicine, Diabetology</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:6px">Today: 9:00 AM – 2:00 PM · 22 patients seen</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:13px;font-weight:500;color:var(--text)">Dr. Ravi</div>
+                <span class="badge warning">● In Session</span>
+              </div>
+              <div style="font-size:11px;color:var(--text3)">Surgery, Orthopaedics</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:6px">Today: 2:00 PM – 7:00 PM · Starts in 3 hrs</div>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <div class="card-header" style="margin-bottom:8px"><span class="card-title">Stats Today</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-family:var(--font-display);font-weight:700;color:var(--accent)">38</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Total Appts</div></div>
+              <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-family:var(--font-display);font-weight:700;color:var(--green)">22</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Completed</div></div>
+              <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-family:var(--font-display);font-weight:700;color:var(--amber)">11</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Waiting</div></div>
+              <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-family:var(--font-display);font-weight:700;color:var(--purple)">5</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Upcoming</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ PRESCRIPTION ════════════════════════════ -->
+    <div class="content" id="content-prescription" data-module="clinic">
+      <div class="greeting"><h1 data-i18n="rx.title">Prescriptions</h1><p data-i18n="rx.subtitle">Digital prescriptions, diagnoses and treatment notes</p></div>
+      <div class="toolbar">
+        <button class="btn btn-primary">+ New Prescription</button>
+        <button class="btn btn-outline">🔍 Search Patient</button>
+        <button class="btn btn-outline">📋 Medicine List</button>
+        <input class="section-search" placeholder="Search by patient or Rx ID…">
+      </div>
+      <div class="bottom-row">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Prescriptions</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="rx-card" style="border-color:rgba(92,124,250,0.3)">
+              <div class="rx-header"><span class="rx-patient">Priya Nair — RX-2024-147</span><span class="rx-date">Today, 10:30 AM</span></div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Diagnosis: Type 2 Diabetes — follow-up · Dr. Sharma</div>
+              <div class="rx-medicines">
+                <div class="rx-med"><span class="rx-med-name">Metformin 500mg</span><span class="rx-med-dose">1-0-1 · 30 days</span></div>
+                <div class="rx-med"><span class="rx-med-name">Glimepiride 2mg</span><span class="rx-med-dose">1-0-0 · 30 days</span></div>
+                <div class="rx-med"><span class="rx-med-name">Vitamin D3 60K IU</span><span class="rx-med-dose">1 weekly · 8 weeks</span></div>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="appt-btn primary">Download PDF</button>
+                <button class="appt-btn">Send WhatsApp</button>
+              </div>
+            </div>
+            <div class="rx-card">
+              <div class="rx-header"><span class="rx-patient">Rajesh Kumar — RX-2024-146</span><span class="rx-date">Today, 9:00 AM</span></div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Diagnosis: Acute Fever — Dr. Sharma</div>
+              <div class="rx-medicines">
+                <div class="rx-med"><span class="rx-med-name">Dolo 650mg</span><span class="rx-med-dose">1-1-1 · 5 days</span></div>
+                <div class="rx-med"><span class="rx-med-name">Azithromycin 500mg</span><span class="rx-med-dose">1-0-0 · 3 days</span></div>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="appt-btn primary">Download PDF</button>
+                <button class="appt-btn">Send WhatsApp</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Medicine List</span><span class="card-action">Manage →</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Medicine</th><th>Type</th><th>Stock</th></tr></thead>
+              <tbody>
+                <tr><td>Paracetamol 500mg</td><td>Tablet</td><td><span class="badge success">1240</span></td></tr>
+                <tr><td>Amoxicillin 250mg</td><td>Capsule</td><td><span class="badge danger">18</span></td></tr>
+                <tr><td>Metformin 500mg</td><td>Tablet</td><td><span class="badge success">340</span></td></tr>
+                <tr><td>Glimepiride 2mg</td><td>Tablet</td><td><span class="badge success">280</span></td></tr>
+                <tr><td>Azithromycin 500mg</td><td>Tablet</td><td><span class="badge danger">11</span></td></tr>
+                <tr><td>Vitamin D3 60K IU</td><td>Sachet</td><td><span class="badge warning">42</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ NOTIFICATIONS ════════════════════════════ -->
+    <div class="content" id="content-notifications">
+      <div class="greeting"><h1 data-i18n="notif.title">Notifications</h1><p data-i18n="notif.subtitle">WhatsApp, SMS, email and appointment reminders</p></div>
+      <div class="toolbar">
+        <button class="btn btn-primary">+ Send Notification</button>
+        <button class="btn btn-outline">📲 WhatsApp Blast</button>
+        <button class="btn btn-outline">📧 Email Campaign</button>
+        <select class="filter-select"><option>All Channels</option><option>WhatsApp</option><option>SMS</option><option>Email</option></select>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">Notification Stats Today</span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+          <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--green)">38</div><div style="font-size:10px;color:var(--text3);margin-top:3px">WhatsApp Sent</div></div>
+          <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--accent)">24</div><div style="font-size:10px;color:var(--text3);margin-top:3px">SMS Sent</div></div>
+          <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--purple)">12</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Emails Sent</div></div>
+          <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--amber)">7</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Pending</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Notifications</span></div>
+        <div class="notif-list">
+          <div class="notif-item"><div class="notif-icon" style="background:rgba(16,185,129,0.12)">💬</div><div class="notif-body"><div class="notif-title">Invoice sent to Rajesh Kumar</div><div class="notif-sub">WhatsApp · INV-2024-891 · ₹2,400 · Delivered ✓✓</div></div><div class="notif-time">10:42 AM</div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:rgba(92,124,250,0.12)">📱</div><div class="notif-body"><div class="notif-title">Appointment reminder — Arun Gowda</div><div class="notif-sub">SMS · 11:00 AM appointment reminder · Delivered</div></div><div class="notif-time">9:45 AM</div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:rgba(245,158,11,0.12)">⚠️</div><div class="notif-body"><div class="notif-title">Low stock alert — Amoxicillin 250mg</div><div class="notif-sub">Internal · Only 18 strips remaining · Action needed</div></div><div class="notif-time">9:00 AM</div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:rgba(139,92,246,0.12)">📧</div><div class="notif-body"><div class="notif-title">Monthly report emailed</div><div class="notif-sub">Email · February 2026 summary report sent to admin</div></div><div class="notif-time">8:00 AM</div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:rgba(16,185,129,0.12)">💬</div><div class="notif-body"><div class="notif-title">Feedback request — Priya Nair</div><div class="notif-sub">WhatsApp · Post-visit feedback link sent</div></div><div class="notif-time">Yesterday</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ AI ANALYTICS ════════════════════════════ -->
+    <div class="content" id="content-analytics">
+      <div class="greeting"><h1 data-i18n="ai.title">AI Analytics</h1><p data-i18n="ai.subtitle">Sales prediction, inventory forecasting and business insights</p></div>
+      <div class="insight-cards">
+        <div class="insight-card"><div class="insight-label">Predicted Revenue — Next 7 Days</div><div class="insight-value">₹8.2L</div><div class="insight-trend delta-up">▲ +20% vs last week</div><div class="insight-desc">Based on appointment bookings, seasonal patterns and historical sales data.</div></div>
+        <div class="insight-card"><div class="insight-label">Inventory Reorder Alert</div><div class="insight-value">3 Items</div><div class="insight-trend" style="color:var(--coral)">⚠ Action required</div><div class="insight-desc">Amoxicillin, Azithromycin and Surgical Gloves will run out within 7 days at current usage rate.</div></div>
+        <div class="insight-card"><div class="insight-label">Peak Hours (This Week)</div><div class="insight-value">10–12 AM</div><div class="insight-trend" style="color:var(--amber)">Tue, Wed, Thu busiest</div><div class="insight-desc">Consider adding one more doctor slot on Tuesday and Wednesday mornings.</div></div>
+        <div class="insight-card"><div class="insight-label">Customer Retention Score</div><div class="insight-value">84.2%</div><div class="insight-trend delta-up">▲ +3.1% vs last month</div><div class="insight-desc">High loyalty programme engagement is driving repeat visits. 38 premium customers active.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenue Forecast — Next 30 Days</span><span class="card-action">AI Model Details →</span></div>
+        <div id="forecast-chart" style="height:100px;display:flex;align-items:flex-end;gap:4px;padding-top:10px"></div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text3)">Forecast based on 6 months of sales data, seasonal factors and appointment pipeline · Last updated: Now</div>
+      </div>
+      <div class="bottom-row" style="margin-top:14px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Top Selling Products</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Product</th><th>Units/Week</th><th>Trend</th></tr></thead>
+              <tbody>
+                <tr><td>Paracetamol 500mg</td><td>480</td><td><span class="delta-up">▲ +8%</span></td></tr>
+                <tr><td>Dolo 650mg</td><td>320</td><td><span class="delta-up">▲ +15%</span></td></tr>
+                <tr><td>Metformin 500mg</td><td>210</td><td><span class="delta-up">▲ +4%</span></td></tr>
+                <tr><td>Azithromycin 500mg</td><td>140</td><td><span class="delta-up">▲ +22%</span></td></tr>
+                <tr><td>BP Monitor</td><td>12</td><td><span class="delta-down">▼ -3%</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Feedback Sentiment Trend</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+            <div style="font-size:11px;color:var(--text3)">Key themes from 324 reviews (NLP)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+              <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:4px 10px;border-radius:20px;font-size:11px">Friendly staff +124</span>
+              <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:4px 10px;border-radius:20px;font-size:11px">Accurate diagnosis +98</span>
+              <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:4px 10px;border-radius:20px;font-size:11px">Clean clinic +76</span>
+              <span style="background:rgba(245,158,11,0.12);color:var(--amber);padding:4px 10px;border-radius:20px;font-size:11px">Wait time -32</span>
+              <span style="background:rgba(244,63,94,0.12);color:var(--coral);padding:4px 10px;border-radius:20px;font-size:11px">Parking -18</span>
+              <span style="background:rgba(16,185,129,0.12);color:var(--green);padding:4px 10px;border-radius:20px;font-size:11px">Medicine available +54</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ SUBSCRIPTION ════════════════════════════ -->
+    <div class="content" id="content-subscription">
+      <div class="greeting"><h1 data-i18n="sub.title">Subscription</h1><p data-i18n="sub.subtitle">Plan management, upgrades and billing cycle</p></div>
+      <div style="margin-bottom:20px;padding:16px 20px;background:rgba(92,124,250,0.08);border:1px solid rgba(92,124,250,0.2);border-radius:12px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:24px">⚡</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">You are on the <strong>Pro Plan</strong></div><div style="font-size:11px;color:var(--text3);margin-top:2px">Next billing: 1 Apr 2026 · ₹2,999/month · Auto-renew ON</div></div>
+        <button class="btn btn-outline" style="font-size:12px">Manage Billing</button>
+      </div>
+      <div class="plan-cards">
+        <div class="plan-card">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">₹999 <sub>/month</sub></div>
+          <div class="plan-features">
+            <div class="plan-feat">1 Business domain</div>
+            <div class="plan-feat">Up to 5 users</div>
+            <div class="plan-feat">Basic billing & invoicing</div>
+            <div class="plan-feat">100 WhatsApp messages/mo</div>
+            <div class="plan-feat">Email support</div>
+          </div>
+          <button class="btn btn-outline" style="width:100%;margin-top:16px;font-size:12px">Downgrade</button>
+        </div>
+        <div class="plan-card current">
+          <div class="plan-current-tag">Current Plan</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">₹2,999 <sub>/month</sub></div>
+          <div class="plan-features">
+            <div class="plan-feat">3 Business domains</div>
+            <div class="plan-feat">Up to 25 users</div>
+            <div class="plan-feat">Clinic + Billing + Inventory</div>
+            <div class="plan-feat">1000 WhatsApp messages/mo</div>
+            <div class="plan-feat">AI Analytics (basic)</div>
+            <div class="plan-feat">Priority support</div>
+          </div>
+          <button class="btn btn-outline" style="width:100%;margin-top:16px;font-size:12px;border-color:var(--accent);color:var(--accent)">Active</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">₹7,999 <sub>/month</sub></div>
+          <div class="plan-features">
+            <div class="plan-feat">Unlimited domains</div>
+            <div class="plan-feat">Unlimited users</div>
+            <div class="plan-feat">All features + white-label</div>
+            <div class="plan-feat">Unlimited notifications</div>
+            <div class="plan-feat">Advanced AI Analytics</div>
+            <div class="plan-feat">Dedicated account manager</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:16px;font-size:12px">Upgrade →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ ADMIN ════════════════════════════ -->
+    <div class="content" id="content-admin">
+      <div class="greeting"><h1 data-i18n="admin.title">Admin Panel</h1><p data-i18n="admin.subtitle">Platform monitoring, business management and system health</p></div>
+      <div class="monitor-grid">
+        <div class="monitor-card"><div class="monitor-label">API Response Time</div><div class="monitor-gauge"><div class="monitor-val">48</div><div class="monitor-unit">ms</div></div><div class="monitor-bar"><div class="monitor-fill" style="width:15%;background:var(--green)"></div></div></div>
+        <div class="monitor-card"><div class="monitor-label">System Uptime</div><div class="monitor-gauge"><div class="monitor-val">99.9</div><div class="monitor-unit">%</div></div><div class="monitor-bar"><div class="monitor-fill" style="width:99%;background:var(--green)"></div></div></div>
+        <div class="monitor-card"><div class="monitor-label">Active Businesses</div><div class="monitor-gauge"><div class="monitor-val">142</div></div><div class="monitor-bar"><div class="monitor-fill" style="width:58%;background:var(--accent)"></div></div></div>
+        <div class="monitor-card"><div class="monitor-label">DB Load</div><div class="monitor-gauge"><div class="monitor-val">34</div><div class="monitor-unit">%</div></div><div class="monitor-bar"><div class="monitor-fill" style="width:34%;background:var(--amber)"></div></div></div>
+        <div class="monitor-card"><div class="monitor-label">Active Users Now</div><div class="monitor-gauge"><div class="monitor-val">287</div></div><div class="monitor-bar"><div class="monitor-fill" style="width:60%;background:var(--teal)"></div></div></div>
+        <div class="monitor-card"><div class="monitor-label">Errors (24h)</div><div class="monitor-gauge"><div class="monitor-val">3</div></div><div class="monitor-bar"><div class="monitor-fill" style="width:2%;background:var(--coral)"></div></div></div>
+      </div>
+      <div class="bottom-row">
+        <div class="card">
+          <div class="card-header"><span class="card-title" data-i18n="admin.business.title">Business Management</span><button class="btn btn-primary" style="font-size:11px;padding:5px 12px" onclick="toggleAddShopForm()" data-i18n="admin.business.addRetail">+ Add Shop (Retail)</button></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Business</th><th>Type</th><th>Plan</th><th>Status</th></tr></thead>
+              <tbody id="admin-business-body">
+                <tr><td colspan="4" style="color:var(--text3);padding:14px 0">Loading businesses…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="add-shop-form" style="display:none;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px" data-i18n="admin.business.help">Retail users can register their shop so customers can discover it nearby.</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <input id="shop-name" class="section-search" style="width:220px" data-i18n-placeholder="shop.name" placeholder="Shop name">
+              <select id="shop-type" class="filter-select">
+                <option value="Retail" data-i18n="shop.type.retail">Retail</option>
+                <option value="Shop" data-i18n="shop.type.shop">Shop</option>
+                <option value="Pharmacy" data-i18n="shop.type.pharmacy">Pharmacy</option>
+                <option value="Clinic" data-i18n="shop.type.clinic">Clinic</option>
+                <option value="Restaurant" data-i18n="shop.type.restaurant">Restaurant</option>
+                <option value="Other" data-i18n="shop.type.other">Other</option>
+              </select>
+              <input id="shop-address" class="section-search" style="width:260px" data-i18n-placeholder="shop.address" placeholder="Address / Area">
+              <input id="shop-lat" class="section-search" style="width:140px" data-i18n-placeholder="shop.lat" placeholder="Latitude">
+              <input id="shop-lng" class="section-search" style="width:140px" data-i18n-placeholder="shop.lng" placeholder="Longitude">
+              <button class="btn btn-outline" onclick="fillShopLocation()" data-i18n="shop.useLocation">📍 Use my location</button>
+              <button class="btn btn-primary" onclick="submitShop()" data-i18n="shop.save">Save Shop</button>
+              <button class="btn btn-outline" onclick="toggleAddShopForm(false)" data-i18n="common.cancel">Cancel</button>
+              <div id="shop-form-status" style="font-size:12px;color:var(--text2)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Subscription Monitoring</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--green)">118</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Active</div></div>
+            <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--amber)">14</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Trial</div></div>
+            <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--coral)">7</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Expired</div></div>
+            <div style="background:var(--surface);border-radius:9px;padding:12px;text-align:center"><div style="font-size:22px;font-family:var(--font-display);font-weight:700;color:var(--accent)">₹4.24L</div><div style="font-size:10px;color:var(--text3);margin-top:2px">MRR</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

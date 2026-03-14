@@ -1,0 +1,19 @@
+{
+  "name": "bizcare-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend API + static server for saas-dashboard.html",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "express-session": "^1.19.0",
+    "mongodb": "^6.20.0"
+  }
+}
