@@ -809,6 +809,141 @@ async function submitProduct() {
 
 // ───────────────────── Billing: Invoices ─────────────────────
 
+let lastInvoicesList = [];
+let currentInvoiceReport = null;
+
+function downloadTextFile(filename, text, mimeType) {
+  try {
+    const blob = new Blob([text], { type: mimeType || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2500);
+  } catch {
+    // ignore
+  }
+}
+
+function csvEscape(value) {
+  const s = value === null || value === undefined ? '' : String(value);
+  if (/[\n\r",]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function invoicesToCsv(invoices) {
+  const header = ['InvoiceId', 'Customer', 'Date', 'AmountInr', 'TaxInr', 'Payment', 'Status', 'TotalInr'];
+  const lines = [header.join(',')];
+  (invoices || []).forEach((inv) => {
+    const amount = Number(inv.amountInr) || 0;
+    const tax = Number(inv.taxInr) || 0;
+    const row = [
+      inv.id || inv._id || '',
+      inv.customer || '',
+      inv.date || '',
+      amount,
+      tax,
+      inv.payment || '—',
+      inv.status || '',
+      amount + tax,
+    ].map(csvEscape);
+    lines.push(row.join(','));
+  });
+  return lines.join('\n');
+}
+
+function showInvoiceReport(inv) {
+  const card = document.getElementById('invoice-report-card');
+  const body = document.getElementById('invoice-report-body');
+  if (!card || !body) return;
+
+  currentInvoiceReport = inv || null;
+  if (!inv) {
+    card.style.display = 'none';
+    body.textContent = '';
+    return;
+  }
+
+  const id = escapeHtml(inv.id || inv._id || '');
+  const customer = escapeHtml(inv.customer || '—');
+  const date = escapeHtml(inv.date || '—');
+  const payment = escapeHtml(inv.payment || '—');
+  const status = escapeHtml(inv.status || '—');
+  const amount = Number(inv.amountInr) || 0;
+  const tax = Number(inv.taxInr) || 0;
+  const total = amount + tax;
+
+  body.innerHTML = `
+    <div style="display:flex;gap:18px;flex-wrap:wrap">
+      <div style="min-width:220px">
+        <div style="font-size:11px;color:var(--text3)">Invoice</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600">${id}</div>
+      </div>
+      <div style="min-width:220px">
+        <div style="font-size:11px;color:var(--text3)">Customer</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600">${customer}</div>
+      </div>
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--text3)">Date</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600">${date}</div>
+      </div>
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--text3)">Payment</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600">${payment}</div>
+      </div>
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--text3)">Status</div>
+        <div style="font-size:14px;color:var(--text);font-weight:600">${status}</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;display:flex;gap:18px;flex-wrap:wrap">
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--text3)">Amount</div>
+        <div style="font-size:14px;color:var(--text);font-weight:700">${formatInr(amount)}</div>
+      </div>
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--text3)">Tax</div>
+        <div style="font-size:14px;color:var(--text);font-weight:700">${formatInr(tax)}</div>
+      </div>
+      <div style="min-width:160px">
+        <div style="font-size:11px;color:var(--text3)">Total</div>
+        <div style="font-size:14px;color:var(--text);font-weight:800">${formatInr(total)}</div>
+      </div>
+    </div>
+  `;
+  card.style.display = 'block';
+}
+
+function exportCurrentInvoiceReport() {
+  if (!currentInvoiceReport) {
+    alert('Open an invoice report first.');
+    return;
+  }
+  const id = (currentInvoiceReport.id || currentInvoiceReport._id || 'invoice').toString();
+  const csv = invoicesToCsv([currentInvoiceReport]);
+  downloadTextFile(`invoice_${id}.csv`, csv, 'text/csv;charset=utf-8');
+}
+
+async function exportInvoicesCsv() {
+  try {
+    const res = await fetch('/api/invoices?limit=200');
+    if (!res.ok) throw new Error('failed');
+    const json = await res.json();
+    const invoices = Array.isArray(json && json.invoices) ? json.invoices : [];
+    const csv = invoicesToCsv(invoices);
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    downloadTextFile(`invoices_${y}${m}${d}.csv`, csv, 'text/csv;charset=utf-8');
+  } catch {
+    alert('Failed to export invoices.');
+  }
+}
+
 function toggleNewInvoiceForm(forceOpen) {
   const form = document.getElementById('new-invoice-form');
   if (!form) return;
@@ -831,7 +966,7 @@ function invoiceRowHtml(inv) {
   const badge = badgeForStatus(statusText);
   const actionLabel = (String(inv.status || '').toLowerCase() === 'pending') ? 'Send' : 'View';
   const actionClass = (String(inv.status || '').toLowerCase() === 'pending') ? 'appt-btn primary' : 'appt-btn';
-  return `<tr><td>${id}</td><td>${customer}</td><td>${date}</td><td>${amount}</td><td>${tax}</td><td>${payment}</td><td><span class="badge ${badge}">${statusText || '—'}</span></td><td><button class="${actionClass}">${actionLabel}</button></td></tr>`;
+  return `<tr><td>${id}</td><td>${customer}</td><td>${date}</td><td>${amount}</td><td>${tax}</td><td>${payment}</td><td><span class="badge ${badge}">${statusText || '—'}</span></td><td><button class="${actionClass}" data-invoice-id="${id}" data-invoice-action="view">${actionLabel}</button></td></tr>`;
 }
 
 async function loadInvoices() {
@@ -843,6 +978,7 @@ async function loadInvoices() {
     if (!res.ok) throw new Error('failed');
     const json = await res.json();
     const invoices = Array.isArray(json && json.invoices) ? json.invoices : [];
+    lastInvoicesList = invoices;
     if (invoices.length === 0) {
       body.innerHTML = '<tr><td colspan="8" style="color:var(--text3);padding:14px 0">No invoices yet.</td></tr>';
       return;
@@ -851,6 +987,21 @@ async function loadInvoices() {
   } catch {
     // ignore
   }
+}
+
+function bindInvoiceRowActions() {
+  const body = document.getElementById('inv-list-body');
+  if (!body) return;
+  if (body.__invoiceBound) return;
+  body.__invoiceBound = true;
+
+  body.addEventListener('click', (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest('button[data-invoice-id]') : null;
+    if (!btn) return;
+    const id = btn.getAttribute('data-invoice-id') || '';
+    const inv = (lastInvoicesList || []).find((x) => String(x.id || x._id || '') === String(id));
+    showInvoiceReport(inv || null);
+  });
 }
 
 async function submitInvoice() {
@@ -1322,6 +1473,7 @@ async function loadOrdersAll() {
 }
 
 // Start auth flow after script load
+bindInvoiceRowActions();
 initAuth();
 
 async function loadBusinesses() {

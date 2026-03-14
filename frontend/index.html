@@ -413,7 +413,7 @@
       <div class="toolbar">
         <button class="btn btn-primary" id="btn-new-invoice" onclick="toggleNewInvoiceForm()">+ New Invoice</button>
         <button class="btn btn-outline">🧾 GST Report</button>
-        <button class="btn btn-outline">📤 Export</button>
+        <button class="btn btn-outline" id="btn-invoices-export" onclick="exportInvoicesCsv()">📤 Export</button>
         <select class="filter-select"><option>All Status</option><option>Paid</option><option>Pending</option><option>Overdue</option></select>
       </div>
 
@@ -471,6 +471,16 @@
               <tr><td>INV-2024-886</td><td>Mohan Das</td><td>12 Mar 2026</td><td>₹680</td><td>₹61</td><td>UPI</td><td><span class="badge success">Paid</span></td><td><button class="appt-btn">View</button></td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="card" id="invoice-report-card" style="margin-top:14px;display:none">
+        <div class="card-header">
+          <span class="card-title">Invoice Report</span>
+          <button class="btn btn-outline" id="btn-invoice-export" onclick="exportCurrentInvoiceReport()">📤 Export</button>
+        </div>
+        <div style="padding:16px">
+          <div id="invoice-report-body" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
         </div>
       </div>
 
