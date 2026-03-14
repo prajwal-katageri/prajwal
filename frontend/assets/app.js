@@ -1129,6 +1129,35 @@ async function doLogin() {
   }
 }
 
+async function doRegister() {
+  const role = (document.getElementById('login-role') || {}).value || 'user';
+  const username = (document.getElementById('login-username') || {}).value ? document.getElementById('login-username').value.trim() : '';
+  const password = (document.getElementById('login-password') || {}).value || '';
+  const displayName = (document.getElementById('login-display') || {}).value ? document.getElementById('login-display').value.trim() : '';
+
+  if (!username || !password) {
+    setLoginStatus('Enter username and password.');
+    return;
+  }
+
+  setLoginStatus('Registering…');
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, username, password, displayName })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !(json && json.ok)) {
+      const msg = (json && (json.message || json.error)) || 'Register failed';
+      throw new Error(msg);
+    }
+    setLoginStatus('Registered. Now click Login.');
+  } catch (e) {
+    setLoginStatus(e && e.message ? e.message : 'Register failed');
+  }
+}
+
 async function logout() {
   try {
     await fetch('/api/auth/logout', { method: 'POST' });

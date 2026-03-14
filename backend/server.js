@@ -126,6 +126,54 @@ app.post("/api/auth/login", async (req, res, next) => {
   }
 });
 
+app.post("/api/auth/register", async (req, res, next) => {
+  try {
+    const username = (req.body && req.body.username) ? String(req.body.username).trim() : "";
+    const password = (req.body && req.body.password) ? String(req.body.password) : "";
+    const role = (req.body && req.body.role) ? String(req.body.role).trim() : "user";
+    const displayName = (req.body && req.body.displayName) ? String(req.body.displayName).trim() : "";
+
+    if (!username || !password) {
+      return res.status(400).json({ ok: false, error: "invalid_request", message: "username and password required" });
+    }
+    if (!( ["admin", "shopkeeper", "user"].includes(role) )) {
+      return res.status(400).json({ ok: false, error: "invalid_request", message: "invalid role" });
+    }
+    if (username.length < 3 || username.length > 40) {
+      return res.status(400).json({ ok: false, error: "invalid_request", message: "username must be 3-40 chars" });
+    }
+    if (password.length < 4 || password.length > 100) {
+      return res.status(400).json({ ok: false, error: "invalid_request", message: "password must be 4-100 chars" });
+    }
+
+    const db = getDb();
+    const existing = await db.collection("users").findOne({ username, role }, { projection: { _id: 1 } });
+    if (existing) {
+      return res.status(409).json({ ok: false, error: "already_exists", message: "user already exists" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const now = new Date();
+    const id = `usr_${crypto.randomUUID()}`;
+    await db.collection("users").insertOne({
+      _id: id,
+      username,
+      role,
+      displayName: displayName || username,
+      passwordHash,
+      createdAt: now,
+    });
+
+    return res.status(201).json({ ok: true, user: { id, username, role, displayName: displayName || username } });
+  } catch (e) {
+    // Handle unique index race
+    if (e && (e.code === 11000 || e.code === 11001)) {
+      return res.status(409).json({ ok: false, error: "already_exists", message: "user already exists" });
+    }
+    next(e);
+  }
+});
+
 function canAccess(role, method, apiPath) {
   if (apiPath === "/health") return true;
   if (apiPath.startsWith("/auth")) return true;
@@ -878,11 +926,33 @@ async function start() {
   const db = getDb();
   await ensureSeed(db);
 
-  const port = Number(process.env.PORT || 3000);
-  const server = app.listen(port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`BizCare backend running on http://localhost:${port}`);
+  const requestedPort = Number(process.env.PORT || 3000);
+
+  const listenOnPort = (port) => new Promise((resolve, reject) => {
+    const s = app.listen(port);
+    s.once("listening", () => resolve(s));
+    s.once("error", reject);
   });
+
+  let server;
+  try {
+    server = await listenOnPort(requestedPort);
+  } catch (e) {
+    // Local-dev nicety: if 3000 is busy, fall back to 3001.
+    // (Some environments set PORT=3000 globally; we still want a smooth local run.)
+    if (e && e.code === "EADDRINUSE" && requestedPort === 3000) {
+      const fallbackPort = requestedPort + 1;
+      // eslint-disable-next-line no-console
+      console.warn(`Port ${requestedPort} is already in use. Trying ${fallbackPort}...`);
+      server = await listenOnPort(fallbackPort);
+    } else {
+      throw e;
+    }
+  }
+
+  const actualPort = (server.address() && server.address().port) ? server.address().port : requestedPort;
+  // eslint-disable-next-line no-console
+  console.log(`BizCare backend running on http://localhost:${actualPort}`);
 
   const shutdown = async () => {
     server.close(() => {
@@ -899,7 +969,16 @@ async function start() {
 
 start().catch((err) => {
   // eslint-disable-next-line no-console
-  console.error("Failed to start server. Is MongoDB running locally?");
+  console.error("Failed to start server.");
+  if (err && err.code === "EADDRINUSE") {
+    // eslint-disable-next-line no-console
+    console.error(`Port ${process.env.PORT || 3000} is already in use.`);
+    // eslint-disable-next-line no-console
+    console.error("Stop the other process or set PORT to a free port (e.g., PORT=3001). ");
+  } else {
+    // eslint-disable-next-line no-console
+    console.error("If this is a DB connection issue, check MONGODB_URI (Atlas) or ensure local MongoDB is running.");
+  }
   // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
